@@ -1,2 +1,5 @@
 /netty-rpc.iml
 /.idea/
+/netty-rpc-service/target/
+/netty-rpc-common/target/
+/netty-rpc-client/target/
