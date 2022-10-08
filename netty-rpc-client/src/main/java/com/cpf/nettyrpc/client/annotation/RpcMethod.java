@@ -1,4 +1,4 @@
-package com.cpf.nettyrpc.annotation;
+package com.cpf.nettyrpc.client.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

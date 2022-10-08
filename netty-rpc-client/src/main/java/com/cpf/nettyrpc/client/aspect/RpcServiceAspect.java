@@ -4,9 +4,9 @@
  * Copyright 2022 yuanfudao.com. All rights reserved.
  * FENBI.COM PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  */
-package com.cpf.nettyrpc.aspect;
+package com.cpf.nettyrpc.client.aspect;
 
-import com.cpf.nettyrpc.annotation.RpcMethod;
+import com.cpf.nettyrpc.client.annotation.RpcMethod;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;

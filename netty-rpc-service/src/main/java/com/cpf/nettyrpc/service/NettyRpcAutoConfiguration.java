@@ -7,7 +7,7 @@
 
 package com.cpf.nettyrpc.service;
 
-import com.cpf.nettyrpc.aspect.RpcServiceAspect;
+import com.cpf.nettyrpc.client.aspect.RpcServiceAspect;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;

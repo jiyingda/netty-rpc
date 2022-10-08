@@ -1,4 +1,4 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.cpf.nettyrpc.service.NettyRpcAutoConfiguration,\
-  com.cpf.nettyrpc.aspect.RpcServiceAspect,\
+  com.cpf.nettyrpc.client.aspect.RpcServiceAspect,\
   com.cpf.nettyrpc.service.RpcHandlerManager
