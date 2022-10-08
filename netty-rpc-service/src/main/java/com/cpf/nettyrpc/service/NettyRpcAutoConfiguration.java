@@ -4,19 +4,37 @@
  * Copyright 2022 yuanfudao.com. All rights reserved.
  * FENBI.COM PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  */
+
 package com.cpf.nettyrpc.service;
 
+import com.cpf.nettyrpc.aspect.RpcServiceAspect;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+
 
 /**
  * @author jiyingdabj
  */
+
 @Configuration
+@EnableAspectJAutoProxy
 public class NettyRpcAutoConfiguration {
 
-    @Bean(name = "rpcService")
+    @Bean
     public RpcService rpcService() {
         return new RpcService();
     }
+
+    @Bean
+    public RpcServiceAspect rpcServiceAspect() {
+        return new RpcServiceAspect();
+    }
+
+    @Bean
+    public RpcHandlerManager rpcHandlerManager() {
+        return new RpcHandlerManager();
+    }
+
 }
+

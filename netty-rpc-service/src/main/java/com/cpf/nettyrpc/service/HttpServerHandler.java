@@ -6,6 +6,7 @@
  */
 package com.cpf.nettyrpc.service;
 
+import com.cpf.nettyrpc.common.RpcHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,12 +24,19 @@ import io.netty.util.CharsetUtil;
  * @author jiyingdabj
  */
 public class HttpServerHandler extends SimpleChannelInboundHandler {
-    private HttpRequest request;
+
+    private RpcHandlerManager rpcHandlerManager;
+
+    public HttpServerHandler(RpcHandlerManager rpcHandlerManager) {
+        this.rpcHandlerManager = rpcHandlerManager;
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+        RpcHandler handler = rpcHandlerManager.getHandler("123");
+        System.out.println(handler.name());
         if (msg instanceof HttpRequest) {
-            request = (HttpRequest) msg;
+            HttpRequest request = (HttpRequest) msg;
             request.method();
             String uri = request.uri();
             System.out.println("Uri:" + uri);
