@@ -7,10 +7,8 @@
 
 package com.cpf.nettyrpc.service;
 
-import com.cpf.nettyrpc.client.aspect.RpcServiceAspect;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 
 /**
@@ -18,17 +16,11 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  */
 
 @Configuration
-@EnableAspectJAutoProxy
 public class NettyRpcAutoConfiguration {
 
     @Bean
     public RpcService rpcService() {
         return new RpcService();
-    }
-
-    @Bean
-    public RpcServiceAspect rpcServiceAspect() {
-        return new RpcServiceAspect();
     }
 
     @Bean

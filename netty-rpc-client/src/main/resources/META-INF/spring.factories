@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.cpf.nettyrpc.service.NettyRpcAutoConfiguration
+  com.cpf.nettyrpc.client.config.NettyRpcClientAutoConfiguration

@@ -38,8 +38,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler {
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
             request.method();
+            String s = request.headers().get("rpcName");
             String uri = request.uri();
-            System.out.println("Uri:" + uri);
+            System.out.println("rpcName = " + s + "\tUri:" + uri);
         }
         if (msg instanceof HttpContent) {
 
