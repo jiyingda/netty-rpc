@@ -15,6 +15,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpServerCodec;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ import javax.annotation.PostConstruct;
 /**
  * @author jiyingdabj
  */
+@Slf4j
 @Component
 public class RpcService {
 
@@ -31,7 +33,7 @@ public class RpcService {
 
     @PostConstruct
     private void init() {
-        System.out.println("start run RpcService");
+        log.info("start run RpcService");
         new Thread(() -> {
             //构造两个线程组
             EventLoopGroup bossGroup = new NioEventLoopGroup();

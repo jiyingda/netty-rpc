@@ -19,10 +19,14 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
+import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.Method;
 
 /**
  * @author jiyingdabj
  */
+@Slf4j
 public class HttpServerHandler extends SimpleChannelInboundHandler {
 
     private RpcHandlerManager rpcHandlerManager;
@@ -31,22 +35,28 @@ public class HttpServerHandler extends SimpleChannelInboundHandler {
         this.rpcHandlerManager = rpcHandlerManager;
     }
 
+    private RpcHandler handler;
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        RpcHandler handler = rpcHandlerManager.getHandler("123");
-        System.out.println(handler.name());
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
-            request.method();
             String s = request.headers().get("rpcName");
+            handler = rpcHandlerManager.getHandler(s);
             String uri = request.uri();
-            System.out.println("rpcName = " + s + "\tUri:" + uri);
+            log.info("httpServerHandler rpcName = {}, Uri = {}", s, uri);
         }
         if (msg instanceof HttpContent) {
 
             HttpContent content = (HttpContent) msg;
             ByteBuf buf = content.content();
-            System.out.println(buf.toString(CharsetUtil.UTF_8));
+            log.info("httpServerHandler msg = {}", buf.toString(CharsetUtil.UTF_8));
+            if (handler != null) {
+                //String h = handler.name();
+                Method method = handler.getClass().getMethod("name");
+                Object obj = method.invoke(handler);
+                log.info("httpServerHandler run = {}", obj);
+            }
 
             ByteBuf byteBuf = Unpooled.copiedBuffer(content.content());
             FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, byteBuf);
