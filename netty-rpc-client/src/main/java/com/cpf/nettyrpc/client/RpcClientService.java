@@ -16,19 +16,23 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jiyingdabj
  */
-@Component
+@Slf4j
 public class RpcClientService {
 
     private volatile int inited = 0;
 
-    @Autowired
-    private ClientChannelHandler clientChannelHandler;
+    private final RpcClientChannelHandler rpcClientChannelHandler;
+
+    public RpcClientService(RpcClientChannelHandler handler) {
+         this.rpcClientChannelHandler = handler;
+    }
 
     public synchronized void init() {
         if (inited > 0) {
@@ -51,7 +55,7 @@ public class RpcClientService {
                                 ChannelPipeline pipeline = ch.pipeline();
                                 pipeline.addLast(new HttpClientCodec());
                                 pipeline.addLast(new HttpObjectAggregator(65536));
-                                pipeline.addLast(clientChannelHandler);
+                                pipeline.addLast(rpcClientChannelHandler);
                             }
                         });
 
@@ -64,5 +68,14 @@ public class RpcClientService {
                 group.shutdownGracefully();
             }
         }).start();
+        while (!rpcClientChannelHandler.isReady()) {
+            log.info("rpcClient not ready");
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        log.info("==== rpcClient ready =====");
     }
 }
