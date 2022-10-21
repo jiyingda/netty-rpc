@@ -31,21 +31,13 @@ public class RpcClientChannelHandler extends SimpleChannelInboundHandler<FullHtt
 
     private ChannelHandlerContext ctx;
 
-    private volatile boolean ready = false;
-
-    public boolean isReady() {
-        return ready;
-    }
-
-    @Override
-    public void handlerAdded(ChannelHandlerContext ctx) {
-        this.ctx = ctx;
-        ready = true;
-        log.info("handlerAdded ctx");
+    public boolean channelIsReady() {
+        return ctx != null;
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        this.ctx = ctx;
         log.info("ClientChannelHandler#channelActive");
     }
 

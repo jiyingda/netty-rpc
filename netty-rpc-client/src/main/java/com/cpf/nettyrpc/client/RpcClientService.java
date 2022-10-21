@@ -7,17 +7,31 @@
 package com.cpf.nettyrpc.client;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpVersion;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,10 +42,19 @@ public class RpcClientService {
 
     private volatile int inited = 0;
 
-    private final RpcClientChannelHandler rpcClientChannelHandler;
+    private ChannelHandlerContext channelHandlerContext;
 
-    public RpcClientService(RpcClientChannelHandler handler) {
-         this.rpcClientChannelHandler = handler;
+    private String responseMsg;
+
+    private CountDownLatch countDownLatch;
+
+    private final String host;
+
+    private final int port;
+
+    public RpcClientService(String host, int port) {
+        this.host = host;
+        this.port = port;
     }
 
     public synchronized void init() {
@@ -40,9 +63,6 @@ public class RpcClientService {
         }
         inited = 1;
         new Thread(() -> {
-            String host = "127.0.0.1";
-            int port = 8082;
-
             EventLoopGroup group = new NioEventLoopGroup();
 
             try {
@@ -55,7 +75,24 @@ public class RpcClientService {
                                 ChannelPipeline pipeline = ch.pipeline();
                                 pipeline.addLast(new HttpClientCodec());
                                 pipeline.addLast(new HttpObjectAggregator(65536));
-                                pipeline.addLast(rpcClientChannelHandler);
+                                pipeline.addLast(new SimpleChannelInboundHandler<FullHttpResponse>(){
+
+                                    @Override
+                                    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                                        channelHandlerContext = ctx;
+                                        log.info("ClientChannelHandler#channelActive");
+                                    }
+
+                                    @Override
+                                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, FullHttpResponse msg) throws Exception {
+                                        channelHandlerContext.channel();
+                                        msg.headers().get(HttpHeaderNames.CONTENT_TYPE);
+                                        ByteBuf buf = msg.content();
+                                        responseMsg = buf.toString(io.netty.util.CharsetUtil.UTF_8);
+                                        countDownLatch.countDown();
+                                        log.info("channelRead0 {}", responseMsg);
+                                    }
+                                });
                             }
                         });
 
@@ -68,7 +105,7 @@ public class RpcClientService {
                 group.shutdownGracefully();
             }
         }).start();
-        while (!rpcClientChannelHandler.isReady()) {
+        while (channelHandlerContext == null) {
             log.info("rpcClient not ready");
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
@@ -77,5 +114,25 @@ public class RpcClientService {
             }
         }
         log.info("==== rpcClient ready =====");
+    }
+
+    public String sendMessage(String path, String args) throws URISyntaxException {
+        init();
+        countDownLatch = new CountDownLatch(1);
+        URI uri = new URI(path);
+        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
+                uri.toASCIIString(), Unpooled.wrappedBuffer(args.getBytes(StandardCharsets.UTF_8)));
+
+        // 构建http请求
+        request.headers().set(HttpHeaderNames.CONTENT_LENGTH, request.content().readableBytes());
+        // 发送http请求
+        channelHandlerContext.channel().writeAndFlush(request);
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        log.info("get response msg = {}", responseMsg);
+        return responseMsg;
     }
 }

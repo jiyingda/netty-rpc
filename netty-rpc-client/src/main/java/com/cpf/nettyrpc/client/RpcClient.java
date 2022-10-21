@@ -13,17 +13,13 @@ import java.net.URISyntaxException;
  */
 public class RpcClient {
 
-    private RpcClientChannelHandler rpcClientChannelHandler;
-
     private RpcClientService rpcClientService;
 
-    public RpcClient() {
-        this.rpcClientChannelHandler = new RpcClientChannelHandler();
-        this.rpcClientService = new RpcClientService(rpcClientChannelHandler);
+    public RpcClient(String host, int port) {
+        this.rpcClientService = new RpcClientService(host, port);
     }
 
-    public String call(String rpcMethodName, String args) throws URISyntaxException {
-        rpcClientService.init();
-        return rpcClientChannelHandler.sendMessage(rpcMethodName, args);
+    public String call(String path, String args) throws URISyntaxException {
+        return rpcClientService.sendMessage(path, args);
     }
 }
