@@ -14,6 +14,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +52,10 @@ public class RpcService {
                                 ChannelPipeline pipeline = sc.pipeline();
                                 //处理http消息的编解码
                                 pipeline.addLast("httpServerCodec", new HttpServerCodec());
+                                //消息聚合器
+                                pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024));
+
+
                                 //添加自定义的ChannelHandler
                                 pipeline.addLast("httpServerHandler", new HttpServerHandler(rpcHandlerManager));
                             }

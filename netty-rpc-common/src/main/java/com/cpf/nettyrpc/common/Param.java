@@ -6,10 +6,17 @@
  */
 package com.cpf.nettyrpc.common;
 
+import java.io.Serializable;
+
 /**
  * @author jiyingdabj
  */
-public class Param {
+public class Param implements Serializable {
 
+    private static final long serialVersionUID = 278592291450011396L;
+
+    private Class<?>[] classType;
+
+    private Object[] objects;
 
 }

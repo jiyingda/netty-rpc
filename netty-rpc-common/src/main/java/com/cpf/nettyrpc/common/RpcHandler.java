@@ -10,8 +10,4 @@ package com.cpf.nettyrpc.common; /**
  */
 public interface RpcHandler {
 
-    /**
-     * handlerName
-     */
-    String name(String rc);
 }
