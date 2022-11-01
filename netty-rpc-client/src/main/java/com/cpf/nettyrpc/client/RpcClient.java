@@ -19,7 +19,7 @@ public class RpcClient {
         this.rpcClientService = new RpcClientService(host, port);
     }
 
-    public String call(String path, String args) throws URISyntaxException {
+    public String call(String path, Object... args) throws URISyntaxException {
         return rpcClientService.sendMessage(path, args);
     }
 }

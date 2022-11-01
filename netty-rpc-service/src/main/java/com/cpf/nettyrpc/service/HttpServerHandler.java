@@ -6,7 +6,9 @@
  */
 package com.cpf.nettyrpc.service;
 
+import com.cpf.nettyrpc.common.JsonUtils;
 import com.cpf.nettyrpc.common.RpcHandler;
+import com.cpf.nettyrpc.common.RpcResponse;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -47,9 +49,9 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<FullHttpReque
         ByteBuf buf = msg.content();
         ByteBuf byteBuf;
         if (handler != null && method != null) {
-            Object obj = RpcServiceProxy.invoke(handler, method, buf.toString(CharsetUtil.UTF_8));
-            log.info("httpServerHandler method-invoke = {}", obj);
-            byteBuf = Unpooled.copiedBuffer(obj.toString().getBytes(StandardCharsets.UTF_8));
+            RpcResponse response = RpcServiceProxy.invoke(handler, method, buf.toString(CharsetUtil.UTF_8));
+            log.info("httpServerHandler method-invoke = {}", response);
+            byteBuf = Unpooled.copiedBuffer(JsonUtils.writeValue(response).getBytes(StandardCharsets.UTF_8));
         } else {
             byteBuf = Unpooled.copiedBuffer(msg.content());
         }

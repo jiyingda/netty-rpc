@@ -12,8 +12,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
 
 import java.io.IOException;
 
@@ -22,15 +20,20 @@ import java.io.IOException;
  */
 public class JsonUtils {
 
-    private static final Logger LOG = LoggerFactory.getLogger(JsonUtils.class);
-
     public static IgnorableObjectMapper objectMapper = new IgnorableObjectMapper();
+
+    public static String writeValue(Object o) {
+        try {
+            return objectMapper.writeValueAsString(o);
+        } catch (Exception e) {
+            return "";
+        }
+    }
 
     public static <T> T readValue(String json, TypeReference<T> typeReference) {
         try {
             return objectMapper.readValue(json, typeReference);
-        } catch (IOException var3) {
-            LOG.error("JsonUtils readValue error", var3);
+        } catch (IOException e) {
             return null;
         }
     }
