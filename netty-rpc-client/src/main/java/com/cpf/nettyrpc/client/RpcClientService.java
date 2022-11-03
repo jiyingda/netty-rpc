@@ -1,9 +1,3 @@
-/**
- * @(#)RpcClientService.java, 10月 12, 2022.
- * <p>
- * Copyright 2022 . All rights reserved.
- *  PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- */
 package com.cpf.nettyrpc.client;
 
 import com.cpf.nettyrpc.common.JsonUtils;
@@ -39,8 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 /**

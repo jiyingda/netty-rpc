@@ -1,9 +1,3 @@
-/**
- * @(#)HttpServerHandler.java, 9月 28, 2022.
- * <p>
- * Copyright 2022 . All rights reserved.
- *  PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- */
 package com.cpf.nettyrpc.service;
 
 import com.cpf.nettyrpc.common.JsonUtils;

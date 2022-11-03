@@ -1,9 +1,3 @@
-/**
- * @(#)RpcServiceProxy.java, 10月 31, 2022.
- * <p>
- * Copyright 2022 yuanfudao.com. All rights reserved.
- * FENBI.COM PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- */
 package com.cpf.nettyrpc.service;
 
 import com.cpf.nettyrpc.common.JsonUtils;
