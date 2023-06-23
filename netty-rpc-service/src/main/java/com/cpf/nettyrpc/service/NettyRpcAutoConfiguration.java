@@ -21,5 +21,10 @@ public class NettyRpcAutoConfiguration {
         return new RpcHandlerManager();
     }
 
+    @Bean
+    public RpcServerChannelHandler rpcServerChannelHandler() {
+        return new RpcServerChannelHandler();
+    }
+
 }
 

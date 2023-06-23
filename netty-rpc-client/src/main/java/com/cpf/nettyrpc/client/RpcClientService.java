@@ -5,8 +5,7 @@ import com.cpf.nettyrpc.common.RpcRequest;
 import com.cpf.nettyrpc.common.RpcResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -16,20 +15,10 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.http.DefaultFullHttpRequest;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpClientCodec;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.CharsetUtil;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -41,13 +30,13 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class RpcClientService {
 
-    private volatile int inited = 0;
-
-    private ChannelHandlerContext channelHandlerContext;
+    private volatile boolean isInitialized = false;
 
     private final String host;
 
     private final int port;
+
+    private Channel channel;
 
     private final ConcurrentHashMap<String, CountDownLatch> requestCountDownLatchMap;
 
@@ -60,11 +49,10 @@ public class RpcClientService {
         this.requestFeatureMap = new ConcurrentHashMap<>();
     }
 
-    public synchronized void init() {
-        if (inited > 0) {
+    private synchronized void init() {
+        if (isInitialized) {
             return;
         }
-        inited = 1;
         new Thread(() -> {
             EventLoopGroup group = new NioEventLoopGroup();
 
@@ -76,35 +64,30 @@ public class RpcClientService {
                             @Override
                             public void initChannel(SocketChannel ch) throws Exception {
                                 ChannelPipeline pipeline = ch.pipeline();
-                                pipeline.addLast(new HttpClientCodec());
-                                pipeline.addLast(new HttpObjectAggregator(65536));
-                                pipeline.addLast(new SimpleChannelInboundHandler<FullHttpResponse>(){
+                                pipeline.addLast(new StringEncoder());
+                                pipeline.addLast(new StringDecoder());
+                                pipeline.addLast(new SimpleChannelInboundHandler<String>() {
 
                                     @Override
-                                    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-                                        channelHandlerContext = ctx;
-                                        log.info("ClientChannelHandler#channelActive");
-                                    }
-
-                                    @Override
-                                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, FullHttpResponse msg) throws Exception {
-                                        channelHandlerContext.channel();
-                                        msg.headers().get(HttpHeaderNames.CONTENT_TYPE);
-                                        ByteBuf buf = msg.content();
-                                        String responseMsg = buf.toString(CharsetUtil.UTF_8);
-                                        RpcResponse response = JsonUtils.readValue(responseMsg, new TypeReference<RpcResponse>() {});
+                                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, String msg) throws Exception {
+                                        RpcResponse response = JsonUtils.readValue(msg, new TypeReference<RpcResponse>() {});
                                         if (response != null) {
-                                            requestFeatureMap.put(response.getRequestId(), response);
-                                            requestCountDownLatchMap.get(response.getRequestId()).countDown();
-                                            log.info("channelRead0 {}", responseMsg);
+                                            String requestId = response.getRequestId();
+                                            if (requestCountDownLatchMap.containsKey(requestId)) {
+                                                requestFeatureMap.put(requestId, response);
+                                                requestCountDownLatchMap.get(requestId).countDown();
+                                                log.info("channelRead0 {}", msg);
+                                            } else {
+                                                log.warn("channelRead0-feature is closed {}", msg);
+                                            }
                                         }
                                     }
                                 });
                             }
                         });
-
                 // 启动客户端.
                 ChannelFuture f = b.connect(host, port).sync();
+                channel = f.channel();
                 f.channel().closeFuture().sync();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -112,7 +95,7 @@ public class RpcClientService {
                 group.shutdownGracefully();
             }
         }).start();
-        while (channelHandlerContext == null) {
+        while (channel == null) {
             log.info("rpcClient not ready");
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
@@ -121,10 +104,14 @@ public class RpcClientService {
             }
         }
         log.info("===== rpcClient ready =====");
+        isInitialized = true;
     }
 
-    public <T> T sendMessage(String path, Object... args) throws URISyntaxException {
-        init();
+    public <T> T sendMessage(String handler, String method, Object... args) {
+        if (!isInitialized) {
+            init();
+        }
+
         CountDownLatch countDownLatch = new CountDownLatch(1);
         String reqId = UUID.randomUUID().toString();
         requestCountDownLatchMap.put(reqId, countDownLatch);
@@ -133,17 +120,12 @@ public class RpcClientService {
         for (int i = 0; i < args.length; i++) {
             classes[i] = args[i].getClass();
         }
+        rpcRequest.setHandler(handler);
+        rpcRequest.setMethod(method);
         rpcRequest.setClassType(classes);
         rpcRequest.setObjects(args);
         rpcRequest.setRequestId(reqId);
-        URI uri = new URI(path);
-        FullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET,
-                uri.toASCIIString(), Unpooled.wrappedBuffer(JsonUtils.writeValue(rpcRequest).getBytes(StandardCharsets.UTF_8)));
-
-        // 构建http请求
-        request.headers().set(HttpHeaderNames.CONTENT_LENGTH, request.content().readableBytes());
-        // 发送http请求
-        channelHandlerContext.channel().writeAndFlush(request);
+        channel.writeAndFlush(JsonUtils.writeValue(rpcRequest));
         try {
             boolean f = countDownLatch.await(5, TimeUnit.SECONDS);
             if (f) {

@@ -1,7 +1,5 @@
 package com.cpf.nettyrpc.client;
 
-import java.net.URISyntaxException;
-
 /**
  * @author jiyingdabj
  */
@@ -13,7 +11,7 @@ public class RpcClient {
         this.rpcClientService = new RpcClientService(host, port);
     }
 
-    public String call(String path, Object... args) throws URISyntaxException {
-        return rpcClientService.sendMessage(path, args);
+    public String call(String handler, String method, Object... args) {
+        return rpcClientService.sendMessage(handler, method, args);
     }
 }

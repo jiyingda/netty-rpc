@@ -13,7 +13,6 @@ import java.util.Map;
 /**
  * @author jiyingdabj
  */
-@Component
 public class RpcHandlerManager {
 
     @Autowired

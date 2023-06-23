@@ -32,6 +32,14 @@ public class JsonUtils {
         }
     }
 
+    public static <T> T readValue(String json, Class<T> clazz) {
+        try {
+            return objectMapper.readValue(json, clazz);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
     static {
         objectMapper.registerModule(new Jdk8Module());
     }

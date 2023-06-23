@@ -8,8 +8,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,11 +20,10 @@ import javax.annotation.PostConstruct;
  * @author jiyingdabj
  */
 @Slf4j
-@Component
 public class RpcService {
 
     @Autowired
-    private RpcHandlerManager rpcHandlerManager;
+    private RpcServerChannelHandler rpcServerChannelHandler;
 
     @PostConstruct
     private void init() {
@@ -44,14 +43,11 @@ public class RpcService {
                             @Override
                             protected void initChannel(SocketChannel sc) throws Exception {
                                 ChannelPipeline pipeline = sc.pipeline();
-                                //处理http消息的编解码
-                                pipeline.addLast("httpServerCodec", new HttpServerCodec());
-                                //消息聚合器
-                                pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024));
-
+                                pipeline.addLast(new StringEncoder());
+                                pipeline.addLast(new StringDecoder());
 
                                 //添加自定义的ChannelHandler
-                                pipeline.addLast("httpServerHandler", new HttpServerHandler(rpcHandlerManager));
+                                pipeline.addLast(rpcServerChannelHandler);
                             }
                         });
 

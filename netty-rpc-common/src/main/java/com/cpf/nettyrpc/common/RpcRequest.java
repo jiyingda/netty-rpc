@@ -11,6 +11,10 @@ public class RpcRequest implements Serializable {
 
     private String requestId;
 
+    private String handler;
+
+    private String method;
+
     private Class<?>[] classType;
 
     private Object[] objects;
@@ -37,5 +41,21 @@ public class RpcRequest implements Serializable {
 
     public void setObjects(Object[] objects) {
         this.objects = objects;
+    }
+
+    public String getHandler() {
+        return handler;
+    }
+
+    public void setHandler(String handler) {
+        this.handler = handler;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
     }
 }
