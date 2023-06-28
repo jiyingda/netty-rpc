@@ -5,6 +5,7 @@ import com.cpf.nettyrpc.common.RpcHandler;
 import com.cpf.nettyrpc.common.RpcRequest;
 import com.cpf.nettyrpc.common.RpcResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import java.lang.reflect.Method;
 /**
  * @author jiyingdabj
  */
+@ChannelHandler.Sharable
 @Slf4j
 public class RpcServerChannelHandler extends SimpleChannelInboundHandler<String> {
 
@@ -28,7 +30,7 @@ public class RpcServerChannelHandler extends SimpleChannelInboundHandler<String>
             return;
         }
         RpcHandler handler = rpcHandlerManager.getHandler(rpcRequest.getHandler());
-        Method method = rpcHandlerManager.getMethod(rpcRequest.getMethod());
+        Method method = rpcHandlerManager.getMethod(rpcRequest.getHandler(), rpcRequest.getMethod());
         log.info("httpServerHandler rpcName = {}, method = {}", rpcRequest.getHandler(), rpcRequest.getMethod());
         if (handler != null && method != null) {
             RpcResponse response = RpcHandlerProxy.invoke(handler, method, rpcRequest);

@@ -3,7 +3,6 @@ package com.cpf.nettyrpc.service;
 import com.cpf.nettyrpc.common.RpcHandler;
 import com.cpf.nettyrpc.common.RpcRequestMapping;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
@@ -22,12 +21,13 @@ public class RpcHandlerManager {
 
     @PostConstruct
     private void initMethodMapping() {
-        handlerMap.values().forEach(e -> {
-            Method[] methods = e.getClass().getMethods();
+        handlerMap.forEach((k, v) -> {
+            Method[] methods = v.getClass().getMethods();
+            String path = k + "#";
             for (Method method : methods) {
                 RpcRequestMapping rpcRequestMapping = method.getAnnotation(RpcRequestMapping.class);
                 if (rpcRequestMapping != null) {
-                    methodMap.put(rpcRequestMapping.path(), method);
+                    methodMap.put(path + rpcRequestMapping.path(), method);
                 }
             }
         });
@@ -37,7 +37,7 @@ public class RpcHandlerManager {
         return handlerMap.get(name);
     }
 
-    public Method getMethod(String path) {
-        return methodMap.get(path);
+    public Method getMethod(String handler, String method) {
+        return methodMap.get(handler + "#" + method);
     }
 }

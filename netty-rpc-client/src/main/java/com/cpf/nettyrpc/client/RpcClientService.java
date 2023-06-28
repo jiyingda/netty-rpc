@@ -3,15 +3,12 @@ package com.cpf.nettyrpc.client;
 import com.cpf.nettyrpc.common.JsonUtils;
 import com.cpf.nettyrpc.common.RpcRequest;
 import com.cpf.nettyrpc.common.RpcResponse;
-import com.fasterxml.jackson.core.type.TypeReference;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -66,23 +63,7 @@ public class RpcClientService {
                                 ChannelPipeline pipeline = ch.pipeline();
                                 pipeline.addLast(new StringEncoder());
                                 pipeline.addLast(new StringDecoder());
-                                pipeline.addLast(new SimpleChannelInboundHandler<String>() {
-
-                                    @Override
-                                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, String msg) throws Exception {
-                                        RpcResponse response = JsonUtils.readValue(msg, new TypeReference<RpcResponse>() {});
-                                        if (response != null) {
-                                            String requestId = response.getRequestId();
-                                            if (requestCountDownLatchMap.containsKey(requestId)) {
-                                                requestFeatureMap.put(requestId, response);
-                                                requestCountDownLatchMap.get(requestId).countDown();
-                                                log.info("channelRead0 {}", msg);
-                                            } else {
-                                                log.warn("channelRead0-feature is closed {}", msg);
-                                            }
-                                        }
-                                    }
-                                });
+                                pipeline.addLast(new RpcClientChannelHandler(requestCountDownLatchMap, requestFeatureMap));
                             }
                         });
                 // 启动客户端.
@@ -126,6 +107,7 @@ public class RpcClientService {
         rpcRequest.setObjects(args);
         rpcRequest.setRequestId(reqId);
         channel.writeAndFlush(JsonUtils.writeValue(rpcRequest));
+        System.out.println(JsonUtils.writeValue(rpcRequest));
         try {
             boolean f = countDownLatch.await(5, TimeUnit.SECONDS);
             if (f) {
