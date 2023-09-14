@@ -64,8 +64,8 @@ public class RpcClientService {
                             @Override
                             public void initChannel(SocketChannel ch) throws Exception {
                                 ChannelPipeline pipeline = ch.pipeline();
-                                pipeline.addLast(new StringEncoder());
                                 pipeline.addLast(new StringDecoder());
+                                pipeline.addLast(new StringEncoder());
                                 pipeline.addLast(new SimpleChannelInboundHandler<String>() {
 
                                     @Override
@@ -95,12 +95,15 @@ public class RpcClientService {
                 group.shutdownGracefully();
             }
         }).start();
-        while (channel == null) {
+        int max = 32;
+        while (channel == null && max > 0) {
             log.info("rpcClient not ready");
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("", e);
+            } finally {
+                max--;
             }
         }
         log.info("===== rpcClient ready =====");

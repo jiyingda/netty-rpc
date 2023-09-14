@@ -3,3 +3,5 @@
 /netty-rpc-service/target/
 /netty-rpc-common/target/
 /netty-rpc-client/target/
+/netty-rpc-service-test/target/
+/netty-rpc-client-test/target/

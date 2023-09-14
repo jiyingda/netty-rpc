@@ -7,7 +7,8 @@ import org.springframework.stereotype.Service;
 /**
  * @author jiyingdabj
  */
-@Service(value = "testRpcHandler")
+@Service
+@RpcRequestMapping(path = "testRpcHandler")
 public class TestRpcHandler implements RpcHandler {
 
     @RpcRequestMapping(path = "name")

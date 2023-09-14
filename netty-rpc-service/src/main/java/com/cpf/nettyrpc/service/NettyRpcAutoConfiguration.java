@@ -1,5 +1,8 @@
 package com.cpf.nettyrpc.service;
 
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,22 +12,18 @@ import org.springframework.context.annotation.Configuration;
  */
 
 @Configuration
-public class NettyRpcAutoConfiguration {
+public class NettyRpcAutoConfiguration implements ApplicationContextAware  {
+
+    private ApplicationContext applicationContext;
 
     @Bean
     public RpcService rpcService() {
-        return new RpcService();
+        return new RpcService(applicationContext);
     }
 
-    @Bean
-    public RpcHandlerManager rpcHandlerManager() {
-        return new RpcHandlerManager();
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
-
-    @Bean
-    public RpcServerChannelHandler rpcServerChannelHandler() {
-        return new RpcServerChannelHandler();
-    }
-
 }
 

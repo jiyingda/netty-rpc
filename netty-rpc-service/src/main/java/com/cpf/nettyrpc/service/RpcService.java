@@ -11,8 +11,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.context.ApplicationContext;
 
 import javax.annotation.PostConstruct;
 
@@ -20,10 +19,13 @@ import javax.annotation.PostConstruct;
  * @author jiyingdabj
  */
 @Slf4j
-public class RpcService {
+public class RpcService  {
 
-    @Autowired
-    private RpcServerChannelHandler rpcServerChannelHandler;
+    private final ApplicationContext applicationContext;
+
+    public RpcService(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
+    }
 
     @PostConstruct
     private void init() {
@@ -43,11 +45,10 @@ public class RpcService {
                             @Override
                             protected void initChannel(SocketChannel sc) throws Exception {
                                 ChannelPipeline pipeline = sc.pipeline();
-                                pipeline.addLast(new StringEncoder());
                                 pipeline.addLast(new StringDecoder());
-
+                                pipeline.addLast(new StringEncoder());
                                 //添加自定义的ChannelHandler
-                                pipeline.addLast(rpcServerChannelHandler);
+                                pipeline.addLast(new RpcServerChannelHandler(applicationContext));
                             }
                         });
 
