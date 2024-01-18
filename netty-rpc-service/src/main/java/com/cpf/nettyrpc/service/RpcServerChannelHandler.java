@@ -1,11 +1,10 @@
 package com.cpf.nettyrpc.service;
 
-import com.cpf.nettyrpc.common.JsonUtils;
 import com.cpf.nettyrpc.common.RpcHandler;
 import com.cpf.nettyrpc.common.RpcRequest;
 import com.cpf.nettyrpc.common.RpcRequestMapping;
 import com.cpf.nettyrpc.common.RpcResponse;
-import com.fasterxml.jackson.core.type.TypeReference;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,8 @@ import java.util.Map;
  * @author jiyingdabj
  */
 @Slf4j
-public class RpcServerChannelHandler extends SimpleChannelInboundHandler<String> {
+@ChannelHandler.Sharable
+public class RpcServerChannelHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
     private volatile int init = 0;
     private final Object lock = new Object();
@@ -30,8 +30,8 @@ public class RpcServerChannelHandler extends SimpleChannelInboundHandler<String>
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
-        RpcRequest rpcRequest = JsonUtils.readValue(msg, new TypeReference<RpcRequest>() {});
+    protected void channelRead0(ChannelHandlerContext ctx, RpcRequest rpcRequest) throws Exception {
+        // RpcRequest rpcRequest = JsonUtils.readValue(msg, new TypeReference<RpcRequest>() {});
         if (rpcRequest == null) {
             return;
         }
@@ -42,7 +42,7 @@ public class RpcServerChannelHandler extends SimpleChannelInboundHandler<String>
         if (handler != null && method != null) {
             RpcResponse response = RpcHandlerProxy.invoke(handler, method, rpcRequest);
             log.info("httpServerHandler method-invoke = {}", response);
-            ctx.writeAndFlush(JsonUtils.writeValue(response));
+            ctx.writeAndFlush(response);
         } else {
             RpcResponse response = new RpcResponse();
             response.setRequestId(rpcRequest.getRequestId());

@@ -8,8 +8,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
@@ -30,7 +31,6 @@ public class RpcService  {
     @PostConstruct
     private void init() {
         log.info("start run RpcService");
-        new Thread(() -> {
             //构造两个线程组
             EventLoopGroup bossGroup = new NioEventLoopGroup();
             EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -45,8 +45,8 @@ public class RpcService  {
                             @Override
                             protected void initChannel(SocketChannel sc) throws Exception {
                                 ChannelPipeline pipeline = sc.pipeline();
-                                pipeline.addLast(new StringDecoder());
-                                pipeline.addLast(new StringEncoder());
+                                pipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
+                                pipeline.addLast(new ObjectEncoder());
                                 //添加自定义的ChannelHandler
                                 pipeline.addLast(new RpcServerChannelHandler(applicationContext));
                             }
@@ -54,14 +54,15 @@ public class RpcService  {
 
                 ChannelFuture future = bootstrap.bind(8082).sync();
                 //等待服务端口关闭
-                future.channel().closeFuture().sync();
+                future.channel().closeFuture().addListener(f -> {
+                    log.info("shutdownGracefully");
+                    // 优雅退出，释放线程池资源
+                    bossGroup.shutdownGracefully();
+                    workerGroup.shutdownGracefully();
+                });
+                log.info("netty service is ready");
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            } finally {
-                // 优雅退出，释放线程池资源
-                bossGroup.shutdownGracefully();
-                workerGroup.shutdownGracefully();
             }
-        }).start();
     }
 }
