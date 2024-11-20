@@ -22,7 +22,7 @@ import java.util.Map;
 public class RpcServerChannelHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
     private volatile int init = 0;
-    private final Object lock = new Object();
+    private final static Object lock = new Object();
 
     private final ApplicationContext applicationContext;
     public RpcServerChannelHandler(ApplicationContext applicationContext) {
