@@ -1,6 +1,7 @@
 package com.cpf.nettyrpc.service;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -15,54 +16,67 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 /**
  * @author jiyingdabj
  */
 @Slf4j
-public class RpcService  {
+public class RpcService {
 
     private final ApplicationContext applicationContext;
+    private final int port;
 
-    public RpcService(ApplicationContext applicationContext) {
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
+    private Channel serverChannel;
+
+    public RpcService(ApplicationContext applicationContext, int port) {
         this.applicationContext = applicationContext;
+        this.port = port;
     }
 
     @PostConstruct
     private void init() {
-        log.info("start run RpcService");
-            //构造两个线程组
-            EventLoopGroup bossGroup = new NioEventLoopGroup();
-            EventLoopGroup workerGroup = new NioEventLoopGroup();
-            try {
-                //服务端启动辅助类
-                ServerBootstrap bootstrap = new ServerBootstrap();
+        log.info("start run RpcService on port {}", port);
+        bossGroup = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup();
+        RpcServerChannelHandler sharedHandler = new RpcServerChannelHandler(applicationContext);
+        try {
+            ServerBootstrap bootstrap = new ServerBootstrap();
+            bootstrap.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel sc) throws Exception {
+                            ChannelPipeline pipeline = sc.pipeline();
+                            pipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
+                            pipeline.addLast(new ObjectEncoder());
+                            pipeline.addLast(sharedHandler);
+                        }
+                    });
 
-                bootstrap.group(bossGroup, workerGroup)
-                        .channel(NioServerSocketChannel.class)
-                        .childHandler(new ChannelInitializer<SocketChannel>() {
+            ChannelFuture future = bootstrap.bind(port).sync();
+            serverChannel = future.channel();
+            log.info("netty service is ready on port {}", port);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("RpcService init interrupted", e);
+            destroy();
+        }
+    }
 
-                            @Override
-                            protected void initChannel(SocketChannel sc) throws Exception {
-                                ChannelPipeline pipeline = sc.pipeline();
-                                pipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
-                                pipeline.addLast(new ObjectEncoder());
-                                //添加自定义的ChannelHandler
-                                pipeline.addLast(new RpcServerChannelHandler(applicationContext));
-                            }
-                        });
-
-                ChannelFuture future = bootstrap.bind(8082).sync();
-                //等待服务端口关闭
-                future.channel().closeFuture().addListener(f -> {
-                    log.info("shutdownGracefully");
-                    // 优雅退出，释放线程池资源
-                    bossGroup.shutdownGracefully();
-                    workerGroup.shutdownGracefully();
-                });
-                log.info("netty service is ready");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+    @PreDestroy
+    public void destroy() {
+        log.info("shutting down RpcService");
+        if (serverChannel != null) {
+            serverChannel.close();
+        }
+        if (bossGroup != null) {
+            bossGroup.shutdownGracefully();
+        }
+        if (workerGroup != null) {
+            workerGroup.shutdownGracefully();
+        }
     }
 }

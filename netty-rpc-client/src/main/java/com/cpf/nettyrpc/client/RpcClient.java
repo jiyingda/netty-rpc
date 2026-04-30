@@ -15,4 +15,8 @@ public class RpcClient {
     public String call(String handler, String method, Object... args) {
         return rpcClientService.sendMessage(handler, method, args);
     }
+
+    public void close() {
+        rpcClientService.close();
+    }
 }

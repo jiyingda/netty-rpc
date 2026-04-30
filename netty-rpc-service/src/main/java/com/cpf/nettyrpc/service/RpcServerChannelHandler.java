@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,21 +22,18 @@ import java.util.Map;
 @ChannelHandler.Sharable
 public class RpcServerChannelHandler extends SimpleChannelInboundHandler<RpcRequest> {
 
-    private volatile int init = 0;
-    private final static Object lock = new Object();
-
     private final ApplicationContext applicationContext;
+
     public RpcServerChannelHandler(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
+        initHandler();
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcRequest rpcRequest) throws Exception {
-        // RpcRequest rpcRequest = JsonUtils.readValue(msg, new TypeReference<RpcRequest>() {});
         if (rpcRequest == null) {
             return;
         }
-        initHandler();
         RpcHandler handler = getHandler(rpcRequest.getHandler());
         Method method = getMethod(rpcRequest.getHandler() + "/" + rpcRequest.getMethod());
         log.info("httpServerHandler rpcName = {}, method = {}", rpcRequest.getHandler(), rpcRequest.getMethod());
@@ -61,31 +59,27 @@ public class RpcServerChannelHandler extends SimpleChannelInboundHandler<RpcRequ
         return methodMap.get(path);
     }
 
-    private Map<String, RpcHandler> handlerMap = new HashMap<>();
+    private Map<String, RpcHandler> handlerMap = Collections.emptyMap();
 
-    private Map<String, Method> methodMap = new HashMap<>();
+    private Map<String, Method> methodMap = Collections.emptyMap();
 
     private void initHandler() {
-        if (init == 1) {
-            return;
-        }
-        synchronized (lock) {
-            if (init == 0) {
-                applicationContext.getBeansOfType(RpcHandler.class).values().forEach(e -> {
-                    RpcRequestMapping rpcRequestMappingHandler = e.getClass().getAnnotation(RpcRequestMapping.class);
-                    if (rpcRequestMappingHandler != null) {
-                        handlerMap.put(rpcRequestMappingHandler.path(), e);
-                        Method[] methods = e.getClass().getMethods();
-                        for (Method method : methods) {
-                            RpcRequestMapping rpcRequestMapping = method.getAnnotation(RpcRequestMapping.class);
-                            if (rpcRequestMapping != null) {
-                                methodMap.put(rpcRequestMappingHandler.path() + "/" + rpcRequestMapping.path(), method);
-                            }
-                        }
+        Map<String, RpcHandler> hMap = new HashMap<>();
+        Map<String, Method> mMap = new HashMap<>();
+        applicationContext.getBeansOfType(RpcHandler.class).values().forEach(e -> {
+            RpcRequestMapping rpcRequestMappingHandler = e.getClass().getAnnotation(RpcRequestMapping.class);
+            if (rpcRequestMappingHandler != null) {
+                hMap.put(rpcRequestMappingHandler.path(), e);
+                for (Method method : e.getClass().getMethods()) {
+                    RpcRequestMapping rpcRequestMapping = method.getAnnotation(RpcRequestMapping.class);
+                    if (rpcRequestMapping != null) {
+                        mMap.put(rpcRequestMappingHandler.path() + "/" + rpcRequestMapping.path(), method);
                     }
-                });
-                init = 1;
+                }
             }
-        }
+        });
+        handlerMap = Collections.unmodifiableMap(hMap);
+        methodMap = Collections.unmodifiableMap(mMap);
+        log.info("initHandler complete, handlers={}, methods={}", handlerMap.keySet(), methodMap.keySet());
     }
 }
