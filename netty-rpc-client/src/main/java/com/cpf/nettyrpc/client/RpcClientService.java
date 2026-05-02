@@ -76,17 +76,23 @@ public class RpcClientService {
 
     private void connect() {
         try {
-            ChannelFuture future = bootstrap.connect(host, port).sync();
-            channel = future.channel();
-            channel.closeFuture().addListener(f -> {
-                if (!closed) {
-                    log.warn("RpcClient disconnected, reconnecting in {}ms ...", RECONNECT_DELAY_MS);
-                    group.schedule(this::connect, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+            ChannelFuture future = bootstrap.connect(host, port);
+            future.addListener((ChannelFuture f) -> {
+                if (f.isSuccess()) {
+                    channel = f.channel();
+                    channel.closeFuture().addListener(cf -> {
+                        if (!closed) {
+                            log.warn("RpcClient disconnected, reconnecting in {}ms ...", RECONNECT_DELAY_MS);
+                            group.schedule(this::connect, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+                        }
+                    });
+                } else {
+                    if (!closed) {
+                        log.error("RpcClientService connect failed, retrying in {}ms", RECONNECT_DELAY_MS, f.cause());
+                        group.schedule(this::connect, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
+                    }
                 }
             });
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("RpcClientService connect interrupted", e);
         } catch (Exception e) {
             if (!closed) {
                 log.error("RpcClientService connect failed, retrying in {}ms", RECONNECT_DELAY_MS, e);
